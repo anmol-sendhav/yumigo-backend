@@ -34,10 +34,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/register",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
-                                "/actuator/health").permitAll()
+                                "/actuator/health",
+                                "/error").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/restaurants/my").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/restaurants",
                                 "/api/v1/restaurants/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/restaurants/{id}/menu").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authEntryPoint)

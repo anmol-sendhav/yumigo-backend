@@ -1,35 +1,34 @@
 package com.yumigo.dto.request.menu;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 
 public record MenuItemRequest(
 
-        @NotNull(message = "Enter a valid category id")
+        @NotNull(message = "Category is required")
         Long categoryId,
 
-        @NotBlank(message = "Enter a valid name")
-        @Size(max=150,message = "Name is required")
+        @NotBlank(message = "Item name is required")
+        @Size(max = 150, message = "Item name must be at most 150 characters")
         String name,
 
-        @Size(min=500)
+        @Size(max = 500, message = "Description must be at most 500 characters")
         String description,
 
-        @Positive
+        @NotNull(message = "Price is required")
+        @Positive(message = "Price must be greater than zero")
+        @Digits(integer = 8, fraction = 2, message = "Price allows up to 8 digits and 2 decimals")
         BigDecimal price,
 
-        boolean veg,
+        @NotNull(message = "Specify whether the item is vegetarian")
+        Boolean veg,
 
-        boolean available,
+        Boolean available,                       // optional: the service treats null as true
 
-        @Size(max=500)
+        @Size(max = 500, message = "Image URL must be at most 500 characters")
         String imageUrl,
 
-        @Positive
+        @Positive(message = "Preparation time must be positive")
         Integer preparationTimeMins
-) {
-}
+) {}
