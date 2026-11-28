@@ -1,6 +1,7 @@
 package com.yumigo.controller;
 
 import com.yumigo.dto.common.PageResponse;
+import com.yumigo.dto.request.order.CancelOrderRequest;
 import com.yumigo.dto.request.order.PlaceOrderRequest;
 import com.yumigo.dto.response.order.OrderResponse;
 import com.yumigo.dto.response.order.OrderSummaryResponse;
@@ -43,5 +44,13 @@ public class OrderController {
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails principal) {
         return ResponseEntity.ok(orderService.getMyOrder(principal.getId(), id));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<OrderResponse> cancel(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) CancelOrderRequest request,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(orderService.cancel(principal.getId(), id, request));
     }
 }

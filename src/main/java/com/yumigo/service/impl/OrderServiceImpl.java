@@ -4,7 +4,9 @@ import com.yumigo.cart.CartData;
 import com.yumigo.cart.CartStore;
 import com.yumigo.config.OrderProperties;
 import com.yumigo.dto.common.PageResponse;
+import com.yumigo.dto.request.order.CancelOrderRequest;
 import com.yumigo.dto.request.order.PlaceOrderRequest;
+import com.yumigo.dto.request.order.UpdateOrderStatusRequest;
 import com.yumigo.dto.response.order.OrderResponse;
 import com.yumigo.dto.response.order.OrderSummaryResponse;
 import com.yumigo.entity.*;
@@ -20,6 +22,7 @@ import com.yumigo.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
@@ -179,6 +182,88 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
     }
 
+    private static final Map<OrderStatus, Set<OrderStatus>> OWNER_TRANSITIONS = Map.of(
+            OrderStatus.PLACED,    Set.of(OrderStatus.ACCEPTED, OrderStatus.REJECTED),
+            OrderStatus.ACCEPTED,  Set.of(OrderStatus.PREPARING),
+            OrderStatus.PREPARING, Set.of(OrderStatus.READY),
+            OrderStatus.READY,     Set.of(OrderStatus.PICKED_UP),
+            OrderStatus.PICKED_UP, Set.of(OrderStatus.DELIVERED)
+    );
+
+    private static final Set<OrderStatus> CUSTOMER_CANCELLABLE =
+            Set.of(OrderStatus.PLACED, OrderStatus.ACCEPTED);
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<OrderSummaryResponse> getOwnerOrders(Long ownerId, OrderStatus status,
+                                                             int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50),
+                Sort.by("placedAt").descending());
+        return PageResponse.from(
+                orderRepository.findForOwner(ownerId, status, pageable).map(orderMapper::toSummary));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponse getOwnerOrder(Long ownerId, Long orderId) {
+        return orderRepository.findByIdAndRestaurantOwnerId(orderId, ownerId)
+                .map(orderMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse updateStatus(Long ownerId, Long orderId, UpdateOrderStatusRequest request) {
+        CustomerOrder order = orderRepository.findByIdAndRestaurantOwnerId(orderId, ownerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+
+        OrderStatus current = order.getStatus();
+        OrderStatus target = request.status();
+
+        if (!OWNER_TRANSITIONS.getOrDefault(current, Set.of()).contains(target)) {
+            throw new BadRequestException("Cannot change order from " + current + " to " + target);
+        }
+
+        applyStatus(order, target, userRepository.getReferenceById(ownerId), request.remark());
+        return orderMapper.toResponse(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse cancel(Long customerId, Long orderId, CancelOrderRequest request) {
+        CustomerOrder order = orderRepository.findByIdAndCustomerId(orderId, customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
+
+        if (!CUSTOMER_CANCELLABLE.contains(order.getStatus())) {
+            throw new BadRequestException(
+                    "This order can no longer be cancelled (status: " + order.getStatus() + ")");
+        }
+
+        String reason = (request == null) ? null : request.reason();
+        applyStatus(order, OrderStatus.CANCELLED, userRepository.getReferenceById(customerId), reason);
+        return orderMapper.toResponse(order);
+    }
+
+    private void applyStatus(CustomerOrder order, OrderStatus target, User actor, String remark) {
+        OrderStatus from = order.getStatus();
+        order.setStatus(target);
+
+        if (target == OrderStatus.DELIVERED) {
+            order.setDeliveredAt(LocalDateTime.now());
+            order.setPaymentStatus(PaymentStatus.PAID);          // cash collected on delivery
+        }
+        if (target == OrderStatus.REJECTED || target == OrderStatus.CANCELLED) {
+            order.setCancelReason(remark);
+        }
+
+        OrderStatusHistory history = new OrderStatusHistory();
+        history.setOrder(order);
+        history.setFromStatus(from);
+        history.setToStatus(target);
+        history.setChangedBy(actor);
+        history.setRemark(remark);
+        historyRepository.save(history);
+    }
     private String generateOrderNumber() {
         String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
         String random = UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
