@@ -12,5 +12,4 @@ public class YumigoApplication {
 
         SpringApplication.run(YumigoApplication.class, args);
     }
-
 }

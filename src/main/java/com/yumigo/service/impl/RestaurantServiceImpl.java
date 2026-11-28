@@ -151,4 +151,21 @@ public class RestaurantServiceImpl implements RestaurantService {
         }
         return restaurantMapper.toResponse(restaurantRepository.save(restaurant));
     }
+
+    @Override
+    @Transactional
+    public RestaurantResponse setOpen(Long restaurantId, Long ownerId, boolean open) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant", restaurantId));
+
+        if (!restaurant.getOwner().getId().equals(ownerId)) {
+            throw new ForbiddenException("You do not own this restaurant");
+        }
+        if (open && restaurant.getStatus() != RestaurantStatus.ACTIVE) {
+            throw new BadRequestException("Only approved restaurants can open");
+        }
+
+        restaurant.setOpen(open);
+        return restaurantMapper.toResponse(restaurant);
+    }
 }

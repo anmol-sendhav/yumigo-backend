@@ -23,4 +23,6 @@ public interface RestaurantService {
 
     RestaurantResponse updateStatus(Long id, RestaurantStatusUpdateRequest request);
 
+    RestaurantResponse setOpen(Long restaurantId, Long ownerId, boolean open);
+
 }

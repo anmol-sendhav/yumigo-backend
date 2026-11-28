@@ -1,0 +1,66 @@
+CREATE TABLE orders (
+                        id                    BIGINT AUTO_INCREMENT PRIMARY KEY,
+                        order_number          VARCHAR(30)   NOT NULL,
+                        customer_id           BIGINT        NOT NULL,
+                        restaurant_id         BIGINT        NOT NULL,
+                        status                VARCHAR(30)   NOT NULL,
+                        contact_phone         VARCHAR(15)   NOT NULL,
+                        delivery_line1        VARCHAR(255)  NOT NULL,
+                        delivery_line2        VARCHAR(255),
+                        delivery_city         VARCHAR(80)   NOT NULL,
+                        delivery_state        VARCHAR(80)   NOT NULL,
+                        delivery_pin_code     VARCHAR(6)    NOT NULL,
+                        delivery_latitude     DECIMAL(10,7),
+                        delivery_longitude    DECIMAL(10,7),
+                        subtotal              DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                        delivery_fee          DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                        tax                   DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                        discount              DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                        total_amount          DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                        payment_method        VARCHAR(20)   NOT NULL,
+                        payment_status        VARCHAR(20)   NOT NULL,
+                        special_instructions  VARCHAR(500),
+                        cancel_reason         VARCHAR(500),
+                        placed_at             DATETIME(6)   NOT NULL,
+                        delivered_at          DATETIME(6),
+                        created_at            DATETIME(6)   NOT NULL,
+                        updated_at            DATETIME(6)   NOT NULL,
+                        version               BIGINT        NOT NULL DEFAULT 0,
+                        CONSTRAINT uk_orders_order_number UNIQUE (order_number),
+                        CONSTRAINT fk_orders_customer   FOREIGN KEY (customer_id)   REFERENCES users(id),
+                        CONSTRAINT fk_orders_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
+                        INDEX idx_orders_customer_placed (customer_id, placed_at),
+                        INDEX idx_orders_restaurant_status (restaurant_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE order_items (
+                             id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+                             order_id      BIGINT        NOT NULL,
+                             menu_item_id  BIGINT        NULL,
+                             item_name     VARCHAR(150)  NOT NULL,
+                             unit_price    DECIMAL(10,2) NOT NULL,
+                             quantity      INT           NOT NULL,
+                             line_total    DECIMAL(10,2) NOT NULL,
+                             created_at    DATETIME(6)   NOT NULL,
+                             updated_at    DATETIME(6)   NOT NULL,
+                             version       BIGINT        NOT NULL DEFAULT 0,
+                             CONSTRAINT fk_order_items_order     FOREIGN KEY (order_id)     REFERENCES orders(id),
+                             CONSTRAINT fk_order_items_menu_item FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
+                                 ON DELETE SET NULL,
+                             INDEX idx_order_items_order (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE order_status_history (
+                                      id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                      order_id     BIGINT       NOT NULL,
+                                      from_status  VARCHAR(30)  NULL,
+                                      to_status    VARCHAR(30)  NOT NULL,
+                                      changed_by   BIGINT       NOT NULL,
+                                      remark       VARCHAR(255),
+                                      created_at   DATETIME(6)  NOT NULL,
+                                      updated_at   DATETIME(6)  NOT NULL,
+                                      version      BIGINT       NOT NULL DEFAULT 0,
+                                      CONSTRAINT fk_order_status_history_order FOREIGN KEY (order_id)   REFERENCES orders(id),
+                                      CONSTRAINT fk_order_status_history_user  FOREIGN KEY (changed_by) REFERENCES users(id),
+                                      INDEX idx_order_status_history_order (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

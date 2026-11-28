@@ -1,7 +1,7 @@
 package com.yumigo.dto.request.restaurant;
 
-public record RestaurantOpenRequest(
+import jakarta.validation.constraints.NotNull;
 
-        boolean open
-) {
-}
+public record RestaurantOpenRequest(
+        @NotNull(message = "Open status is required") Boolean open
+) {}

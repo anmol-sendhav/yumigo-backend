@@ -2,6 +2,7 @@ package com.yumigo.controller;
 
 import com.yumigo.dto.common.PageResponse;
 import com.yumigo.dto.request.restaurant.CreateRestaurantRequest;
+import com.yumigo.dto.request.restaurant.RestaurantOpenRequest;
 import com.yumigo.dto.request.restaurant.RestaurantStatusUpdateRequest;
 import com.yumigo.dto.response.restaurant.RestaurantResponse;
 import com.yumigo.dto.response.restaurant.RestaurantSummaryResponse;
@@ -62,5 +63,14 @@ public class RestaurantController {
             @PathVariable Long id,
             @Valid @RequestBody RestaurantStatusUpdateRequest request) {
         return ResponseEntity.ok(restaurantService.updateStatus(id, request));
+    }
+
+    @PatchMapping("/{id}/open")
+    @PreAuthorize("hasRole('RESTAURANT_OWNER')")
+    public ResponseEntity<RestaurantResponse> setOpen(
+            @PathVariable Long id,
+            @Valid @RequestBody RestaurantOpenRequest request,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(restaurantService.setOpen(id, principal.getId(), request.open()));
     }
 }

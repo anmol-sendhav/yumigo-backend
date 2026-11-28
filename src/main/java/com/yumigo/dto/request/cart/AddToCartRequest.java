@@ -1,0 +1,12 @@
+package com.yumigo.dto.request.cart;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+
+public record AddToCartRequest(
+        @NotNull(message = "Menu item is required") Long menuItemId,
+        @NotNull(message = "Quantity is required")
+        @Min(value = 1, message = "Quantity must be at least 1")
+        @Max(value = 20, message = "Quantity cannot exceed 20") Integer quantity
+) {}

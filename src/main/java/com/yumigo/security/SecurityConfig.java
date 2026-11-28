@@ -35,7 +35,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
                                 "/actuator/health",
-                                "/error").permitAll()
+                                "/error",
+                                "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/restaurants/my").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/restaurants",
                                 "/api/v1/restaurants/{id}").permitAll()
